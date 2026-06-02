@@ -7,10 +7,12 @@ from typing import Any
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
+from mcp.shared._httpx_utils import create_mcp_http_client
 
 from sub_agent_mcp.agent.errors import MCPConnectionError
 from sub_agent_mcp.config.schema import AgentConfig
 from sub_agent_mcp.logging import get_logger
+from sub_agent_mcp.mcp_client.headers import resolve_mcp_server_headers
 
 logger = get_logger(__name__)
 
@@ -86,26 +88,31 @@ async def discover_tools(agent: AgentConfig) -> list[ToolMetadata]:
 
     for server in agent.mcp_servers:
         try:
-            async with streamable_http_client(str(server.url)) as (read, write, _):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.list_tools()
-                    for tool in result.tools:
-                        if not is_tool_allowed(server.name, tool.name, agent.tool_allowlist):
-                            continue
+            headers = resolve_mcp_server_headers(server)
+            async with create_mcp_http_client(headers=headers) as http_client:
+                async with streamable_http_client(
+                    str(server.url),
+                    http_client=http_client,
+                ) as (read, write, _):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        result = await session.list_tools()
+                        for tool in result.tools:
+                            if not is_tool_allowed(server.name, tool.name, agent.tool_allowlist):
+                                continue
 
-                        schema = tool.inputSchema if hasattr(tool, "inputSchema") else None
-                        if not validate_tool_schema(tool.name, tool.description, schema):
-                            continue
+                            schema = tool.inputSchema if hasattr(tool, "inputSchema") else None
+                            if not validate_tool_schema(tool.name, tool.description, schema):
+                                continue
 
-                        discovered.append(
-                            ToolMetadata(
-                                name=tool.name,
-                                server=server.name,
-                                description=tool.description or "",
-                                qualified_name=qualified_tool_name(server.name, tool.name),
+                            discovered.append(
+                                ToolMetadata(
+                                    name=tool.name,
+                                    server=server.name,
+                                    description=tool.description or "",
+                                    qualified_name=qualified_tool_name(server.name, tool.name),
+                                )
                             )
-                        )
         except Exception as exc:
             logger.error(
                 "mcp_server_unreachable",

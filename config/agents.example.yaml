@@ -15,6 +15,7 @@ agents:
       - name: search
         transport: streamable_http
         url: http://search-mcp:8002/mcp
+        bearer_token: ${SEARCH_MCP_TOKEN}
     tool_allowlist:
       - filesystem.read_file
       - search.web_search

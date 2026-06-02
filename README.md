@@ -301,7 +301,8 @@ Copy [config/agents.example.yaml](config/agents.example.yaml) as a starting poin
 | `mcp_servers`           | List of remote MCP servers (`transport` must be `streamable_http`)                           |
 | `mcp_servers[].name`    | Short name used in qualified tool names (`name.tool`)                                        |
 | `mcp_servers[].url`     | Streamable HTTP MCP endpoint (must end with `/mcp` for standard layouts)                     |
-| `mcp_servers[].headers` | Optional HTTP headers (for example auth tokens)                                              |
+| `mcp_servers[].bearer_token` | Optional bearer token; sent as `Authorization: Bearer ...` (supports `${ENV_VAR}`)      |
+| `mcp_servers[].headers` | Optional extra HTTP headers merged with bearer auth                                          |
 | `tool_allowlist`        | Optional list of `server.tool` names; omit to allow all tools from connected servers         |
 
 Environment variable substitution supports `${VAR}` and `${VAR:-default}`. If `VAR` is unset and no default is provided, startup fails with a clear error.
@@ -339,6 +340,12 @@ mcp_servers:
   - name: my_api
     transport: streamable_http
     url: https://mcp.example.com/mcp
+    bearer_token: ${MY_MCP_TOKEN}
+```
+
+You can also set auth manually via `headers`:
+
+```yaml
     headers:
       Authorization: "Bearer ${MY_MCP_TOKEN}"
 ```

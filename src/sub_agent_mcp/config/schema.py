@@ -32,6 +32,7 @@ class MCPServerConfig(BaseModel):
     name: str = Field(min_length=1)
     transport: Literal["streamable_http"]
     url: HttpUrl
+    bearer_token: SecretStr | None = None
     headers: dict[str, str] = Field(default_factory=dict)
 
 

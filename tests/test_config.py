@@ -132,6 +132,27 @@ def test_invalid_agent_id(tmp_path: Path) -> None:
         load_agents_config(config_file)
 
 
+def test_load_config_with_bearer_token_env_substitution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_file = tmp_path / "agents.yaml"
+    config_file.write_text(
+        VALID_YAML.replace(
+            "url: http://filesystem-mcp:8001/mcp",
+            "url: http://filesystem-mcp:8001/mcp\n        bearer_token: ${MCP_TOKEN}",
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MCP_TOKEN", "downstream-secret")
+
+    config = load_agents_config(config_file)
+
+    assert (
+        config.agents[0].mcp_servers[0].bearer_token.get_secret_value()  # type: ignore[union-attr]
+        == "downstream-secret"
+    )
+
+
 def test_load_config_without_tool_allowlist(tmp_path: Path) -> None:
     """Omitting tool_allowlist from YAML allows all tools."""
     yaml_without_allowlist = """
