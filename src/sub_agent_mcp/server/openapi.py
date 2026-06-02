@@ -183,9 +183,8 @@ def register_tool_http_routes(mcp: FastMCP) -> None:
         handler = make_handler(tool.name)
         for prefix in HTTP_TOOL_ROUTE_PREFIXES:
             path = f"{prefix}/{tool.name}"
-            mcp.custom_route(path, methods=["POST"], name=f"tool_{tool.name}_{prefix.strip('/').replace('/', '_')}")(
-                handler
-            )
+            route_name = f"tool_{tool.name}_{prefix.strip('/').replace('/', '_')}"
+            mcp.custom_route(path, methods=["POST"], name=route_name)(handler)
 
 
 def register_openapi_route(mcp: FastMCP) -> None:
