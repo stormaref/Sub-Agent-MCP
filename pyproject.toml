@@ -24,6 +24,14 @@ dev = [
     "ruff>=0.8",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-httpx>=0.35",
+    "ruff>=0.8",
+]
+
 [project.scripts]
 sub-agent-mcp = "sub_agent_mcp.main:main"
 
