@@ -11,6 +11,7 @@ from sub_agent_mcp.agent.executor import spawn_agent as run_spawn_agent
 from sub_agent_mcp.config.schema import AgentsFile
 from sub_agent_mcp.logging import get_logger
 from sub_agent_mcp.mcp_client.tool_registry import discover_tools
+from sub_agent_mcp.server.openapi import register_openapi_route
 
 logger = get_logger(__name__)
 
@@ -70,3 +71,5 @@ def register_tools(mcp: FastMCP, config: AgentsFile) -> None:
         except AgentError as exc:
             logger.error("spawn_agent_tool_error", agent_id=agent_id, error=str(exc))
             return {"error": str(exc)}
+
+    register_openapi_route(mcp)

@@ -32,6 +32,8 @@ python -m sub_agent_mcp.main
 
 Server listens at `http://0.0.0.0:8000/mcp`.
 
+OpenAPI schema (auto-generated from registered tools): `http://0.0.0.0:8000/mcp/openapi.json`
+
 ### Docker Compose
 
 ```bash
