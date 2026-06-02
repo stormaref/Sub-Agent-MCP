@@ -1,15 +1,11 @@
-# syntax=docker/dockerfile:1
-
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
-
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-RUN uv pip install --system --no-cache .
+RUN pip install --no-cache-dir .
 
 FROM python:3.12-slim AS runtime
 
@@ -23,8 +19,6 @@ RUN groupadd --gid 1000 appuser \
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
-COPY pyproject.toml README.md ./
-COPY src ./src
 COPY config ./config
 
 USER appuser
@@ -36,7 +30,7 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -sf http://localhost:8000/mcp || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -sf -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/mcp | grep -qE '^[234]'
 
 CMD ["python", "-m", "sub_agent_mcp.main"]

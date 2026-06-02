@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from langchain_core.messages import AIMessage
 
 from sub_agent_mcp.agent.errors import AgentExecutionError, AgentNotFoundError
 from sub_agent_mcp.agent.executor import spawn_agent
@@ -22,7 +22,7 @@ async def test_spawn_agent_not_found(agents_config: AgentsFile) -> None:
 async def test_spawn_agent_success(agents_config: AgentsFile) -> None:
     mock_runnable = AsyncMock()
     mock_runnable.ainvoke.return_value = {
-        "messages": [AIMessage(content="Research complete.")]
+        "messages": [SimpleNamespace(content="Research complete.")]
     }
 
     with patch("sub_agent_mcp.agent.executor.build_agent", return_value=mock_runnable):

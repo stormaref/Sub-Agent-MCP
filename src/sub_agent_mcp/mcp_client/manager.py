@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
-from typing import Any
-
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from typing import TYPE_CHECKING, Any
 
 from sub_agent_mcp.agent.errors import MCPConnectionError
 from sub_agent_mcp.config.schema import AgentConfig
 from sub_agent_mcp.logging import get_logger
 from sub_agent_mcp.mcp_client.tool_registry import allows_all_tools, qualified_tool_name
+
+if TYPE_CHECKING:
+    from langchain_mcp_adapters.client import MultiServerMCPClient
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,8 @@ def build_client_config(agent: AgentConfig) -> dict[str, dict[str, Any]]:
 
 def create_mcp_client(agent: AgentConfig) -> MultiServerMCPClient:
     """Create a MultiServerMCPClient for the given agent."""
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+
     return MultiServerMCPClient(build_client_config(agent))
 
 

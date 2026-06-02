@@ -95,8 +95,7 @@ async def test_discover_tools_all_when_no_allowlist(mock_mcp_servers: tuple[int,
 
 
 @pytest.mark.asyncio
-async def test_get_langchain_tools_without_allowlist(mock_mcp_servers: tuple[int, int]) -> None:
-    fs_port, search_port = mock_mcp_servers
+async def test_get_langchain_tools_without_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
     agent = AgentConfig(
         id="researcher",
         title="Research Agent",
@@ -111,18 +110,32 @@ async def test_get_langchain_tools_without_allowlist(mock_mcp_servers: tuple[int
             MCPServerConfig(
                 name="filesystem",
                 transport="streamable_http",
-                url=f"http://127.0.0.1:{fs_port}/mcp",
+                url="http://127.0.0.1:8001/mcp",
             ),
             MCPServerConfig(
                 name="search",
                 transport="streamable_http",
-                url=f"http://127.0.0.1:{search_port}/mcp",
+                url="http://127.0.0.1:8002/mcp",
             ),
         ],
+    )
+
+    class FakeTool:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class FakeClient:
+        async def get_tools(self, *, server_name: str | None = None) -> list[FakeTool]:
+            if server_name == "filesystem":
+                return [FakeTool("read_file")]
+            return [FakeTool("web_search")]
+
+    monkeypatch.setattr(
+        "sub_agent_mcp.mcp_client.manager.create_mcp_client",
+        lambda _agent: FakeClient(),
     )
 
     tools = await get_langchain_tools(agent)
 
     assert len(tools) == 2
-    tool_names = {tool.name for tool in tools}
-    assert tool_names == {"read_file", "web_search"}
+    assert {tool.name for tool in tools} == {"read_file", "web_search"}

@@ -16,6 +16,7 @@ from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
+import tests.langgraph_reviver_patch  # noqa: F401
 from sub_agent_mcp.config.schema import AgentConfig, AgentsFile, LLMConfig, MCPServerConfig
 
 
@@ -47,8 +48,9 @@ def create_mock_mcp_server(tools: dict[str, str]) -> FastMCP:
     return server
 
 
-def start_server(server: FastMCP, port: int) -> threading.Thread:
+def start_server(server: FastMCP, port: int) -> tuple[uvicorn.Server, threading.Thread]:
     """Start a FastMCP server in a background thread."""
+
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette):
         async with server.session_manager.run():
@@ -66,10 +68,14 @@ def start_server(server: FastMCP, port: int) -> threading.Thread:
         ws="none",
     )
     uvicorn_server = uvicorn.Server(config)
-
     thread = threading.Thread(target=asyncio.run, args=(uvicorn_server.serve(),), daemon=True)
     thread.start()
-    return thread
+    return uvicorn_server, thread
+
+
+def stop_server(uvicorn_server: uvicorn.Server) -> None:
+    """Signal a uvicorn server to exit."""
+    uvicorn_server.should_exit = True
 
 
 def wait_for_server(port: int, timeout: float = 5.0) -> None:
@@ -94,12 +100,17 @@ def mock_mcp_servers() -> Iterator[tuple[int, int]]:
     fs_server = create_mock_mcp_server({"read_file": "Read a file from disk"})
     search_server = create_mock_mcp_server({"web_search": "Search the web"})
 
-    start_server(fs_server, fs_port)
-    start_server(search_server, search_port)
+    fs_uvicorn, _fs_thread = start_server(fs_server, fs_port)
+    search_uvicorn, _search_thread = start_server(search_server, search_port)
     wait_for_server(fs_port)
     wait_for_server(search_port)
 
-    yield fs_port, search_port
+    try:
+        yield fs_port, search_port
+    finally:
+        stop_server(fs_uvicorn)
+        stop_server(search_uvicorn)
+        time.sleep(0.1)
 
 
 @pytest.fixture
