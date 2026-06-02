@@ -15,7 +15,10 @@ from sub_agent_mcp import __version__
 
 OPENAPI_PATH = "/mcp/openapi.json"
 MCP_TRANSPORT_PATH = "/mcp"
-TOOLS_PATH_PREFIX = "/mcp/tools"
+# Open WebUI appends these paths to the configured server URL (typically .../mcp).
+OPENAPI_TOOLS_PATH_PREFIX = "/tools"
+# Also serve legacy paths when the server URL is the reverse-proxy mount (e.g. .../sub-agent).
+HTTP_TOOL_ROUTE_PREFIXES = (OPENAPI_TOOLS_PATH_PREFIX, "/mcp/tools")
 
 
 def _tool_request_schema(tool: Tool) -> dict[str, Any]:
@@ -85,7 +88,7 @@ def build_openapi_document(mcp: FastMCP) -> dict[str, Any]:
     }
 
     for tool in mcp._tool_manager.list_tools():
-        path = f"{TOOLS_PATH_PREFIX}/{tool.name}"
+        path = f"{OPENAPI_TOOLS_PATH_PREFIX}/{tool.name}"
         paths[path] = {
             "post": {
                 "operationId": tool.name,
@@ -121,7 +124,7 @@ def build_openapi_document(mcp: FastMCP) -> dict[str, Any]:
             "description": (
                 "Sub-Agent MCP server. Tools can be invoked via MCP JSON-RPC at "
                 f"{MCP_TRANSPORT_PATH} or via OpenAPI-compatible POST requests at "
-                f"{TOOLS_PATH_PREFIX}/{{tool_name}}."
+                f"{OPENAPI_TOOLS_PATH_PREFIX}/{{tool_name}}."
             ),
         },
         "paths": paths,
@@ -147,11 +150,9 @@ def _tool_http_response(result: Any) -> dict[str, Any]:
 
 
 def register_tool_http_routes(mcp: FastMCP) -> None:
-    """Register POST /mcp/tools/{tool_name} routes for Open WebUI OpenAPI clients."""
+    """Register OpenAPI-compatible POST tool routes for Open WebUI."""
 
     for tool in mcp._tool_manager.list_tools():
-        path = f"{TOOLS_PATH_PREFIX}/{tool.name}"
-
         def make_handler(tool_name: str):
             async def tool_handler(request: Request) -> Response:
                 try:
@@ -179,9 +180,12 @@ def register_tool_http_routes(mcp: FastMCP) -> None:
 
             return tool_handler
 
-        mcp.custom_route(path, methods=["POST"], name=f"tool_{tool.name}")(
-            make_handler(tool.name)
-        )
+        handler = make_handler(tool.name)
+        for prefix in HTTP_TOOL_ROUTE_PREFIXES:
+            path = f"{prefix}/{tool.name}"
+            mcp.custom_route(path, methods=["POST"], name=f"tool_{tool.name}_{prefix.strip('/').replace('/', '_')}")(
+                handler
+            )
 
 
 def register_openapi_route(mcp: FastMCP) -> None:

@@ -29,10 +29,10 @@ def test_build_openapi_document_includes_tools(mcp_app: object) -> None:
 
     paths = document["paths"]
     assert OPENAPI_PATH in paths
-    assert "/mcp/tools/list_agents" in paths
-    assert "/mcp/tools/spawn_agent" in paths
+    assert "/tools/list_agents" in paths
+    assert "/tools/spawn_agent" in paths
 
-    spawn = paths["/mcp/tools/spawn_agent"]["post"]
+    spawn = paths["/tools/spawn_agent"]["post"]
     props = spawn["requestBody"]["content"]["application/json"]["schema"]["properties"]
     assert "agent_id" in props
     assert "prompt" in props
@@ -45,17 +45,27 @@ def test_openapi_route_returns_json(mcp_app: object) -> None:
 
     assert response.status_code == 200
     document = json.loads(response.text)
-    assert document["paths"]["/mcp/tools/list_agents"]["post"]["operationId"] == "list_agents"
+    assert document["paths"]["/tools/list_agents"]["post"]["operationId"] == "list_agents"
 
 
 def test_list_agents_http_route(mcp_app: object) -> None:
+    app = mcp_app.streamable_http_app()  # type: ignore[attr-defined]
+    with TestClient(app) as client:
+        response = client.post("/tools/list_agents", json={})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "result" in payload
+    assert payload["result"][0]["id"] == "researcher"
+
+
+def test_list_agents_legacy_http_route(mcp_app: object) -> None:
     app = mcp_app.streamable_http_app()  # type: ignore[attr-defined]
     with TestClient(app) as client:
         response = client.post("/mcp/tools/list_agents", json={})
 
     assert response.status_code == 200
     payload = response.json()
-    assert "result" in payload
     assert payload["result"][0]["id"] == "researcher"
 
 

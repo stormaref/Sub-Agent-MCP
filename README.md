@@ -181,15 +181,16 @@ Mount your own `agents.yaml` and ensure MCP `url` values are reachable from insi
 curl -s http://localhost:8000/mcp/openapi.json | head
 ```
 
-**Open WebUI (OpenAPI tool server)** — Register as **OpenAPI** (not MCP). Use the server base URL **without** `/mcp/openapi.json`; Open WebUI appends paths from the spec (for example `/mcp/tools/list_agents`):
+**Open WebUI (OpenAPI tool server)** — Register as **OpenAPI** (not MCP):
+
+| Field | Value |
+|-------|--------|
+| **URL** | `http://localhost:8000/mcp` (or `http://mcp.example.com/sub-agent/mcp` behind a proxy) |
+| **OpenAPI path** | `openapi.json` (default) |
+
+Open WebUI appends tool paths from the spec (for example `/tools/list_agents`) to that URL:
 
 ```bash
-# Base URL in Admin Settings → External Tools (Type: OpenAPI)
-http://localhost:8000
-
-# Or, if behind a reverse-proxy prefix:
-http://mcp.example.com/sub-agent
-
 curl -s -X POST http://localhost:8000/mcp/tools/list_agents -H 'Content-Type: application/json' -d '{}'
 ```
 
